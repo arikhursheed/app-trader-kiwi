@@ -1,10 +1,10 @@
-SELECT *,profit_before_marketing_cost -  both_marketing_months*1000 AS both_profit
+SELECT name,(profit_before_marketing_cost -  highest_lifespan_months*1000)::MONEY AS both_profit_after_marketing_cost
 FROM ( SELECT *,
-	  (app_lifespan*5000 - app_cost + play_lifespan*5000 - play_cost) AS profit_before_marketing_cost,
+	   (app_lifespan*5000 - app_cost + play_lifespan*5000 - play_cost) AS profit_before_marketing_cost,
         --takes the highest lifespan then use it later to miltiply by 1000  as marketing cost
        (CASE WHEN app_lifespan>play_lifespan THEN app_lifespan
 		ELSE play_lifespan END)
-	    AS both_marketing_months
+	    AS highest_lifespan_months
 --from Diego
       FROM ( SELECT  *,
 --one time cost from buying the app. this depends on NULL values when app is only on one store
@@ -35,5 +35,7 @@ FROM ( SELECT *,
 		     --ratings, removing nulls and rounding to nearest .5
 	         FROM app_store_apps INNER JOIN play_store_apps
 	         Using (name)
-             order by play_rating desc) as sub_query) AS total_profit) final_profit
+             ) as sub_query) AS total_profit) AS final_profit
 --WHERE app_price IS NOT NULL AND play_price IS NOT NULL
+ORDER BY both_profit_after_marketing_cost DESC
+limit 10
