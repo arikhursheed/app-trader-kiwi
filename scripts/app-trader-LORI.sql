@@ -32,33 +32,22 @@ SELECT app_store_apps.primary_genre as app_genre, play_store_apps.genres as play
 	order by name;
 
 
-/*FULL JOIN of app_ & play_ table (designed by me)
+/*INNER JOIN of app_ & play_ table (designed by me)
 	with naming protocols to create similar names (for readability), 
-	and similar columns placed side by side */
-SELECT 
-	app_store_apps.name AS name_app,   --_app is APPLE IOS
-	play_store_apps.name AS name_play, --_play is ANDROID IOS
-	app_store_apps.size_bytes AS size_app, 
-	play_store_apps.size AS size_play, 
-	app_store_apps.price AS price_app, 
-	play_store_apps.price AS price_play, 
-	--app_store_apps.currency AS currency_app, --Currency only on app_store_apps. All records are USD. Omitting from table.
-	play_store_apps.type AS type_play, 
-	app_store_apps.review_count AS rev_count_app, 
-	play_store_apps.review_count AS rev_count_play, 
-	app_store_apps.rating AS rating_app, 
-	play_store_apps.rating AS rating_play, 
-	app_store_apps.content_rating AS content_rating_app,
-	play_store_apps.content_rating AS content_rating_play, 
-	app_store_apps.primary_genre AS primary_genre_app,
-	play_store_apps.category AS primary_genre_play, 
-	play_store_apps.genres AS sub_genres_play,
-	play_store_apps.install_count AS install_count_play 
-FROM app_store_apps FULL JOIN play_store_apps
-USING (name)
-WHERE app_store_apps.name IS NOT NULL AND play_store_apps.name IS NOT NULL;  --Running with this option returns 553 rows, including ONLY names in BOTH datasets.
+	and similar columns placed side by side. Didn't include names that only extist in one dataset */
+SELECT	
+    app_store_apps.name AS name_a, play_store_apps.name AS name_p,
+	app_store_apps.size_bytes AS size_a, play_store_apps.size AS size_p, 
+	app_store_apps.price AS price_a, play_store_apps.price AS price_p, 
+	app_store_apps.review_count AS rev_count_a, play_store_apps.review_count AS rev_count_p, 
+	app_store_apps.rating AS rating_a, play_store_apps.rating AS rating_p, 
+	app_store_apps.content_rating AS content_rating_a, play_store_apps.content_rating AS content_rating_p, 
+	app_store_apps.primary_genre AS primary_genre_a, play_store_apps.category AS primary_genre_p, 
+	play_store_apps.genres AS sub_genres_p, play_store_apps.install_count AS install_count_p 
+FROM app_store_apps INNER JOIN play_store_apps USING (name);
 
-SELECT COUNT (DISTINCT genres)
+
+SELECT COUNT(DISTINCT genres) AS genres_p, COUNT(DISTINCT category) AS category_p 
 FROM play_store_apps;
 
 SELECT DISTINCT (content_rating)
@@ -196,6 +185,9 @@ SELECT corr(price::numeric, size_bytes::numeric) AS corr_price_size
 		--, corr(rating::numeric, content_rating::numeric) AS corr_price_content_rating
 	FROM app_store_apps;
 
+--Justlook at top 10/20 apps.   Better than correlation...
+
+
 SELECT COUNT(DISTINCT rating)::numeric
 	FROM app_store_apps;
 	
@@ -205,31 +197,39 @@ SELECT *
 
 
 
-
+--DO NOT USE--
 --------------------------------------------------------------
 --CLEANED CODE FOR both_profit (i.e., net profit for apps in both stores) (from Ari & Diego)
---QUESTION: Can I make this into a CTE, so I don't have to include it on EVERY correlation separately?
-								  
-	SELECT *, profit_before_marketing_cost -  both_marketing_months*1000 AS both_profit
-		FROM (SELECT *, (app_lifespan*5000 - app_cost + play_lifespan*5000 - play_cost) AS profit_before_marketing_cost,
-				(CASE WHEN app_lifespan>play_lifespan THEN app_lifespan ELSE play_lifespan END) AS both_marketing_months
-		FROM (SELECT  *,
-				(CASE --WHEN app_price IS NULL THEN 0
-					WHEN app_price<=1 THEN 10000 ELSE app_price*10000 END) AS app_cost,
-				(CASE --WHEN play_price IS NULL THEN 0
-					WHEN play_price<=1 THEN 10000 ELSE play_price*10000 end) AS play_cost,
-			CEIL(1+app_rating*2)*12 as app_lifespan,
-			CEIL(1+play_rating*2)*12 as play_lifespan,
-			CEIL(1+app_rating*2)*12*5000 AS app_revenue,
-			CEIL(1+play_rating*2)*12*5000 AS play_revenue 
-		FROM (SELECT name,
-			app_store_apps.price as app_price, play_store_apps.price::money::numeric as play_price,
-				ROUND((COALESCE(app_store_apps.rating,0)/.5),0)*.5 as app_rating,
-				ROUND(COALESCE(play_store_apps.rating,0)/.5,0)*.5 as play_rating
-		FROM app_store_apps 
-			INNER JOIN play_store_apps
-			Using (name)
-			order by play_rating desc) as sub_query) AS total_profit) final_profit
-		ORDER BY both_profit; 
---WHERE app_price IS NOT NULL AND play_price IS NOT NULL
+
+WITH full_table AS (SELECT *, ROUND(profit_before_marketing_cost -  highest_lifespan_months*1000 , 0)::numeric AS both_profit_after_marketing_cost
+					FROM (SELECT *, (app_lifespan*5000 - app_cost + play_lifespan*5000 - play_cost) AS profit_before_marketing_cost,
+       		 			--takes the highest lifespan then use it later to miltiply by 1000  as marketing cost
+						(CASE WHEN app_lifespan>play_lifespan THEN app_lifespan ELSE play_lifespan END) AS highest_lifespan_months
+					FROM (SELECT  *,   --one time cost from buying the app. this depends on NULL values when app is only on one store
+							(CASE WHEN app_price<=1 THEN 10000 ELSE app_price*10000 END) AS app_cost,			--WHEN app_price IS NULL THEN 0
+							(CASE WHEN play_price<=1 THEN 10000	ELSE play_price*10000 end) AS play_cost,		--WHEN play_price IS NULL THEN 0
+								CEIL(1+app_rating*2)*12 AS app_lifespan, 	 --Turn rating to number of months, for 12 represents 1 year and so on.
+								CEIL(1+play_rating*2)*12 AS play_lifespan
+								--CEIL((1+app_rating*2)*12)*5000 AS app_revenue,
+								--CEIL(1+play_rating*2)*12*5000 AS play_revenue 
+					FROM (SELECT DISTINCT(name), app_store_apps.price AS app_price, 
+						  	play_store_apps.price::money::numeric AS play_price,
+							 --Prices as money. for play_price, need to cast from text to money (to get $ to be recognized appropriately) then to numeric.
+							 ROUND(COALESCE(app_store_apps.rating,0)/.5,0)*.5 AS app_rating,
+							 ROUND(COALESCE(play_store_apps.rating,0)/.5,0)*.5 AS play_rating,
+							 --ratings, removing nulls and rounding to nearest .5
+							  app_store_apps.primary_genre AS primary_genre_app,
+							  play_store_apps.category AS primary_genre_play
+					FROM app_store_apps 
+						INNER JOIN play_store_apps USING (name)
+						 		) AS price_rating_genre
+						 		) AS total_profit
+						 		) AS final_profit
+					--WHERE app_price IS NOT NULL AND play_price IS NOT NULL
+					ORDER BY both_profit_after_marketing_cost DESC)
+
+SELECT DISTINCT(play_rating), COUNT(*), ROUND(AVG(both_profit_after_marketing_cost),0) AS avg_net_profit
+FROM full_table
+GROUP BY play_rating
+ORDER BY avg_net_profit DESC;
 				  
