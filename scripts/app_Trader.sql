@@ -27,7 +27,7 @@ FROM ( SELECT *,
 	    --CEIL(1+play_rating*2)*12*5000 AS play_revenue 
 --from Diego	
 --INNER JOIN both tables as subquery
-        FROM (SELECT name,
+        FROM (SELECT DISTINCT(name),
 		     app_store_apps.price as app_price, play_store_apps.price::money::numeric as play_price,
 		     --Prices as money. for play_price, need to cast text to money then to numeric.
 		     ROUND((COALESCE(app_store_apps.rating,0)/.5),0)*.5 as app_rating,
