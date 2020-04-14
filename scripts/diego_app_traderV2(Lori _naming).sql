@@ -68,14 +68,14 @@ financials AS (SELECT *, (revenue - buy_cost - marketing_cost)	as profit
 				LIMIT 100)
 				
 
-/*	
+/*	-- top100 apps grouped into category, with count and profit
 SELECT primary_genre_play as genre, count(*), AVG(profit) as avg_profit
 FROM top_100
 GROUP BY genre
 ORDER BY count desc, avg_profit desc
 */
 
-/*
+/* --NOT USEFUL
 SELECT max(profit) as max_profit, max(ROI) as max_roi, min(profit) as min_profit, min(ROI) as min_roi, stores FROM(
 SELECT name, profit, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI, 
 			CASE WHEN price_app IS NOT NULL AND price_play IS NOT NULL THEN 'both stores' ELSE 'one store' END as stores
@@ -93,19 +93,20 @@ USING (name)
 GROUP BY primary_genre_app
 ORDER BY AVG(profit) desc
 */
+
 /*
--- ALL APPS with profit, genre, rev, ROI.  USE FOR TOP 10
-SELECT name, AVG(rev_count_app::int + rev_count_play) as total_revs, profit, primary_genre_app, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI
+-- ALL APPS with profit, genre, reviews, ROI.  USE FOR TOP 10
+SELECT name, AVG(rev_count_app::int + rev_count_play) as total_revs, profit, AVG(buy_cost) as buy_cost, AVG(marketing_cost) as mkt_cost, AVG(revenue) as revenue, primary_genre_app, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI
 FROM financials left join all_data
 USING(name)
 GROUP BY name, profit, primary_genre_app, ROI
 ORDER BY profit desc, total_revs desc
 */
-
+/*
 -- count and average profit by price_app, only includes ones in both stores. 
 SELECT DISTINCT(price_app), COUNT(*), ROUND(AVG(profit),0) as avg_profit
 FROM financials LEFT JOIN all_data 
 USING (name)
 WHERE price_app IS NOT NULL AND price_play IS NOT NULL
 GROUP BY price_app
-
+*/
