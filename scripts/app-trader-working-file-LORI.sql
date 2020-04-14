@@ -228,8 +228,8 @@ WITH full_table AS (SELECT *, ROUND(profit_before_marketing_cost -  highest_life
 					--WHERE app_price IS NOT NULL AND play_price IS NOT NULL
 					ORDER BY both_profit_after_marketing_cost DESC)
 
-SELECT DISTINCT(play_rating), COUNT(*), ROUND(AVG(both_profit_after_marketing_cost),0) AS avg_net_profit
+SELECT DISTINCT(app_cost), COUNT(*), ROUND(AVG(both_profit_after_marketing_cost),0) AS avg_net_profit
 FROM full_table
-GROUP BY play_rating
+GROUP BY app_cost
 ORDER BY avg_net_profit DESC;
 				  
