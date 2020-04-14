@@ -18,7 +18,7 @@ all_data AS (	SELECT 	DISTINCT(name),
 							play_store_apps.genres AS genres_play,
 							play_store_apps.install_count AS install_count_play,
 				  			-- Calculates lifespan	
-							(1+(ROUND(COALESCE(app_store_apps.rating,0)/.5,0)*.5)/.5)*12 as life_app,
+							(1+(ROUND(COALESCE(app_store_apps.rating,0)/.5,0)*.5)/.5)*12 as life_app, 
 							(1+(ROUND(COALESCE(play_store_apps.rating,0)/.5,0)*.5)/.5)*12  as life_play
 					FROM app_store_apps FULL JOIN play_store_apps
 					Using (name)),
@@ -58,15 +58,54 @@ financials AS (SELECT *, (revenue - buy_cost - marketing_cost)	as profit
 								ELSE ROUND(life_play*5000,0) end)
 							AS revenue
 						FROM all_data) as cost_rev
-					Order by profit desc)		
-/*
-SELECT name, profit, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI, revi 
-FROM financials
-ORDER BY roi desc, profit
+					Order by profit desc)
+					
+
+,TOP_100 AS 	(SELECT DISTINCT NAME, *
+			FROM financials LEFT JOIN all_data
+			USING (name)
+				ORDER BY profit desc
+				LIMIT 100)
+				
+
+/*	
+SELECT primary_genre_play as genre, count(*), AVG(profit) as avg_profit
+FROM top_100
+GROUP BY genre
+ORDER BY count desc, avg_profit desc
 */
 
-SELECT primary_genre_app, avg(profit), COUNT(*)
+/*
+SELECT max(profit) as max_profit, max(ROI) as max_roi, min(profit) as min_profit, min(ROI) as min_roi, stores FROM(
+SELECT name, profit, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI, 
+			CASE WHEN price_app IS NOT NULL AND price_play IS NOT NULL THEN 'both stores' ELSE 'one store' END as stores
+FROM financials left JOIN all_data
+USING (name)
+ORDER BY roi desc, profit) as roi_table
+GROUP BY stores
+*/
+
+/*
+--query that shows avg profit and count by app store primary genre
+SELECT primary_genre_app, avg(profit) as avg_profit, COUNT(*)
 FROM financials LEFT JOIN all_data
 USING (name)
 GROUP BY primary_genre_app
 ORDER BY AVG(profit) desc
+*/
+/*
+-- ALL APPS with profit, genre, rev, ROI.  USE FOR TOP 10
+SELECT name, AVG(rev_count_app::int + rev_count_play) as total_revs, profit, primary_genre_app, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI
+FROM financials left join all_data
+USING(name)
+GROUP BY name, profit, primary_genre_app, ROI
+ORDER BY profit desc, total_revs desc
+*/
+
+-- count and average profit by price_app, only includes ones in both stores. 
+SELECT DISTINCT(price_app), COUNT(*), ROUND(AVG(profit),0) as avg_profit
+FROM financials LEFT JOIN all_data 
+USING (name)
+WHERE price_app IS NOT NULL AND price_play IS NOT NULL
+GROUP BY price_app
+
