@@ -1,3 +1,13 @@
+/*
+	-- PLAY STORE was a bit confusing... There are 33 CATEGORIES, and 119 "genres" ... really SUB-GENRES in play_store_apps
+	-- APP STORE APPS... just "Genres" 
+	-- GENRES (play store) = CATEGORIES (play store) === very equivalent in the top 100.
+	-- We called CATEGORIES from play store and GENRES from app_stores
+SELECT COUNT(DISTINCT genres)
+	FROM play_store_apps
+	LIMIT 30;
+*/
+
 -- Create CTE that includes ALL data joined by name.  If neither price_app or price_play are Null, then app is on both stores. 
 WITH
 all_data AS ( SELECT 	DISTINCT(name),
@@ -52,7 +62,7 @@ financials AS (SELECT *, (revenue - buy_cost - marketing_cost)	as profit
 			USING (name)
 				ORDER BY profit desc
 				LIMIT 100)
-
+/*
 --MY CODE (to make use of Diego's CTE's, above) - to pull all information with primary view as grouped by GENRE
 SELECT 
 	primary_genre_play as genre
@@ -69,7 +79,7 @@ SELECT
 FROM top_100
 GROUP BY genre
 ORDER BY count desc, avg_profit desc
-
+*/
 
 
 
@@ -96,14 +106,14 @@ GROUP BY primary_genre_app
 ORDER BY AVG(profit) desc
 */
 
-/*
+
 -- ALL APPS with profit, genre, rev, ROI.  USE FOR TOP 10
 SELECT name, AVG(rev_count_app::int + rev_count_play) as total_revs, profit, primary_genre_app, ROUND(100*profit/(buy_cost + marketing_cost),2) as ROI
 FROM financials left join all_data
 USING(name)
 GROUP BY name, profit, primary_genre_app, ROI
 ORDER BY profit desc, total_revs desc
-*/
+
 
 /*
 -- count and average profit by price_app, only includes ones in both stores. 
@@ -113,3 +123,6 @@ USING (name)
 WHERE price_app IS NOT NULL AND price_play IS NOT NULL
 GROUP BY price_app
 */
+
+
+
