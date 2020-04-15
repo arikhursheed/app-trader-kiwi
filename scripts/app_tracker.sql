@@ -38,9 +38,10 @@ Select distinct name, genres, content_rating,  play_rating, round((1+play_rating
   ,(case when play_price >= 0 and play_price <=1 then 10000 else play_price * 10000 end) + (case when app_price >= 0 and app_price <=1 then 10000 else app_price * 10000 end) as total_purchase
 
 -- calculate profit = total_revenue - cost_lifespan - total_purchase 
- , round((round((1+play_rating/0.5), 0) * 12 * 5000) + (round((1+app_rating/0.5), 0) * 12 * 5000) 
+ 
+  , round((round((1+play_rating/0.5), 0) * 12 * 5000) + (round((1+app_rating/0.5), 0) * 12 * 5000) 
     - (case when round((1+play_rating/0.5), 0) > round((1+app_rating/0.5), 0) then round((1+play_rating/0.5), 0) else round((1+app_rating/0.5), 0) end) * 12000 
-	- (case when play_price >= 0 and play_price <=1 then 10000 else play_price * 10000 end) + (case when app_price >= 0 and app_price <=1 then 10000 else app_price * 10000 end), 0)  as profit 
+	- ((case when play_price >= 0 and play_price <=1 then 10000 else play_price * 10000 end) + (case when app_price >= 0 and app_price <=1 then 10000 else app_price * 10000 end)), 0) as profit
 	
 --, play_price, app_price, play_rating, app_rating, play_rev_count, app_rev_count, app_content_rating, genres --new column names
  
@@ -58,7 +59,7 @@ Select distinct name, genres, content_rating,  play_rating, round((1+play_rating
 
 -- order by profit to get the most profitable apps 
 order by profit desc
-limit 10;
+-- limit 10;
 			
 
 
